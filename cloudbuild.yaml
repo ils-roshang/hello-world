@@ -5,5 +5,16 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args: [ 'push', 'us-central1-docker.pkg.dev/sureel-test/hello-repo/hello-world' ]
 
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'hello-world-service'
+      - '--image=us-central1-docker.pkg.dev/sureel-test/hello-repo/hello-world'
+      - '--region=us-central1'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+
 images:
   - 'us-central1-docker.pkg.dev/sureel-test/hello-repo/hello-world'
