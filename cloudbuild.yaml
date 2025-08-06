@@ -1,10 +1,10 @@
 steps:
   - name: 'gcr.io/cloud-builders/docker'
-    args: [ 'build', '-t', 'REGION-docker.pkg.dev/PROJECT_ID/REPO_NAME/hello-world', '.' ]
+    args: [ 'build', '-t', 'us-central1-docker.pkg.dev/sureel-test/hello-world/hello-world', '.' ]
 
   - name: 'gcr.io/cloud-builders/docker'
-    args: [ 'push', 'REGION-docker.pkg.dev/PROJECT_ID/REPO_NAME/hello-world' ]
+    args: [ 'push', 'us-central1-docker.pkg.dev/sureel-test/hello-world/hello-world' ]
 
 images:
-  - 'REGION-docker.pkg.dev/PROJECT_ID/REPO_NAME/hello-world'
+  - 'us-central1-docker.pkg.dev/sureel-test/hello-world/hello-world'
 
