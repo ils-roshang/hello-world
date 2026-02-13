@@ -42,116 +42,113 @@ const exitProcessAfter = <T, U>(cmd: CommandModule<T, U>): CommandModule<T, U> =
 });
 
 const main = async () => {
-  log.info('Starting storage-mcp server...');
+  console.log('--- STARTING MCP STORAGE SERVER ---');
+  console.log(`Node version: ${process.version}`);
+  console.log(`CWD: ${process.cwd()}`);
 
-  let argv;
   try {
-    argv = await yargs(hideBin(process.argv))
-      .command('$0', 'Run the storage mcp server', (yargs) => {
-        yargs.option('enable-destructive-tools', {
-          describe: 'Enable tools that can modify or delete existing GCS content.',
-          type: 'boolean',
-          default: false,
-        });
-      })
-      .command(exitProcessAfter(init))
-      .version(pkg.version)
-      .help()
-      .parse();
-  } catch (err) {
-    log.error('Failed to parse arguments', err instanceof Error ? err : undefined);
-    process.exit(1);
-  }
+    log.info('Parsing arguments...');
+    let argv;
+    try {
+      argv = await yargs(hideBin(process.argv))
+        .command('$0', 'Run the storage mcp server', (yargs) => {
+          yargs.option('enable-destructive-tools', {
+            describe: 'Enable tools that can modify or delete existing GCS content.',
+            type: 'boolean',
+            default: false,
+          });
+        })
+        .command(exitProcessAfter(init))
+        .version(pkg.version)
+        .help()
+        .parse();
+    } catch (err) {
+      console.error('CRITICAL: Failed to parse arguments', err);
+      process.exit(1);
+    }
 
-  const server = new McpServer(
-    {
-      name: 'storage-mcp-server',
-      version: pkg.version,
-    },
-    { capabilities: { tools: {} } },
-  );
-
-  // Start with the common tools that are always safe and registered.
-  const allTools = [...commonSafeTools];
-
-  if (argv['enable-destructive-tools']) {
-    // In destructive mode, add the overwriting tools and other destructive tools.
-    allTools.push(...destructiveWriteTools);
-    allTools.push(...otherDestructiveTools);
-    log.warn(
-      'WARNING: Destructive tools are enabled. The agent can now modify and delete GCS data.',
-    );
-  } else {
-    // In safe mode (default), add only the safe, non-overwriting write tools.
-    allTools.push(...safeWriteTools);
-  }
-
-  for (const registerTool of allTools) {
-    registerTool(server);
-  }
-
-  const PORT_ENV = process.env['PORT'] || (process.env['K_SERVICE'] ? '8080' : null);
-
-  if (PORT_ENV) {
-    log.info('Running in HTTP/SSE mode...');
-    const app = express();
-    let sseTransport: SSEServerTransport | null = null;
-
-    // Health check - place first for fastest response
-    app.get('/', (_req: express.Request, res: express.Response) => {
-      res.json({
+    log.info('Initializing McpServer instance...');
+    const server = new McpServer(
+      {
         name: 'storage-mcp-server',
         version: pkg.version,
-        status: 'running',
-      });
-    });
-
-    app.get('/sse', async (_req: express.Request, res: express.Response) => {
-      log.info('New SSE connection');
-      sseTransport = new SSEServerTransport('/messages', res);
-      await server.connect(sseTransport);
-    });
-
-    app.post('/messages', async (req: express.Request, res: express.Response) => {
-      if (sseTransport) {
-        await sseTransport.handlePostMessage(req, res);
-      } else {
-        res.status(400).send('SSE connection not established');
-      }
-    });
-
-    const port = parseInt(PORT_ENV);
-    app.listen(port, '0.0.0.0', () => {
-      log.info(`🚀 storage mcp server listening on 0.0.0.0:${port}`);
-    });
-  } else {
-    log.info('Running in stdio mode...');
-    await server.connect(new StdioServerTransport());
-    log.info(
-      `🚀 storage mcp server started in ${argv['enable-destructive-tools'] ? 'destructive' : 'safe'
-      } mode`,
+      },
+      { capabilities: { tools: {} } },
     );
+
+    log.info('Registering tools...');
+    // Start with the common tools that are always safe and registered.
+    const allTools = [...commonSafeTools];
+
+    if (argv['enable-destructive-tools']) {
+      allTools.push(...destructiveWriteTools);
+      allTools.push(...otherDestructiveTools);
+      log.warn('WARNING: Destructive tools are enabled.');
+    } else {
+      allTools.push(...safeWriteTools);
+    }
+
+    for (const registerTool of allTools) {
+      registerTool(server);
+    }
+    log.info(`Total tools registered: ${allTools.length}`);
+
+    const PORT_ENV = process.env['PORT'] || (process.env['K_SERVICE'] ? '8080' : null);
+
+    if (PORT_ENV) {
+      log.info(`Running in HTTP/SSE mode on port ${PORT_ENV}...`);
+      const app = express();
+
+      // Health check - immediate response
+      app.get('/', (_req: express.Request, res: express.Response) => {
+        res.json({
+          name: 'storage-mcp-server',
+          version: pkg.version,
+          status: 'running',
+          mode: 'sse'
+        });
+      });
+
+      let sseTransport: SSEServerTransport | null = null;
+      app.get('/sse', async (_req: express.Request, res: express.Response) => {
+        log.info('New SSE connection requested');
+        sseTransport = new SSEServerTransport('/messages', res);
+        await server.connect(sseTransport);
+        log.info('SSE connection established');
+      });
+
+      app.post('/messages', async (req: express.Request, res: express.Response) => {
+        if (sseTransport) {
+          await sseTransport.handlePostMessage(req, res);
+        } else {
+          res.status(400).send('SSE connection not established');
+        }
+      });
+
+      const port = parseInt(PORT_ENV);
+      app.listen(port, '0.0.0.0', () => {
+        console.log(`🚀 SUCCESS: storage mcp server listening on 0.0.0.0:${port}`);
+        log.info(`🚀 storage mcp server listening on 0.0.0.0:${port}`);
+      });
+    } else {
+      log.info('Running in stdio mode...');
+      await server.connect(new StdioServerTransport());
+      log.info('🚀 SUCCESS: storage mcp server started in stdio mode');
+    }
+  } catch (err) {
+    console.error('FATAL ERROR DURING STARTUP:', err);
+    log.error('FATAL ERROR DURING STARTUP', err instanceof Error ? err : undefined);
+    process.exit(1);
   }
 
   process.on('uncaughtException', async (err: unknown) => {
-    await server.close();
-    const error = err instanceof Error ? err : undefined;
-    log.error('❌ Uncaught exception.', error);
+    log.error('❌ Uncaught exception.', err instanceof Error ? err : undefined);
     process.exit(1);
   });
-  process.on('unhandledRejection', async (reason: unknown, promise: Promise<unknown>) => {
-    await server.close();
-    const error = reason instanceof Error ? reason : undefined;
-    log.error(`❌ Unhandled rejection: ${promise}`, error);
+
+  process.on('unhandledRejection', async (reason: unknown) => {
+    log.error('❌ Unhandled rejection.', reason instanceof Error ? reason : undefined);
     process.exit(1);
-  });
-  process.on('SIGINT', async () => {
-    await server.close();
-    process.exit(0);
-  });
-  process.on('SIGTERM', async () => {
-    await server.close();
-    process.exit(0);
   });
 };
 
