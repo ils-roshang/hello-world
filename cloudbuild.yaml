@@ -7,13 +7,12 @@ steps:
       - us-central1-docker.pkg.dev/sureel-test/hello-repo/mcp-storage-server
       - '.'
       
-
   # Push to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - push
       - us-central1-docker.pkg.dev/sureel-test/hello-repo/mcp-storage-server
-
+      
   # Deploy to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
@@ -30,8 +29,7 @@ steps:
       - '--cpu=1'
       - '--max-instances=10'
       - '--timeout=300s'
-      - '--set-env-vars'
-      - 'ENABLE_DESTRUCTIVE_TOOLS=false'
+      - '--set-env-vars=GOOGLE_CLOUD_PROJECT=sureel-test,ENABLE_DESTRUCTIVE_TOOLS=false'
 
 images:
   - us-central1-docker.pkg.dev/sureel-test/hello-repo/mcp-storage-server
