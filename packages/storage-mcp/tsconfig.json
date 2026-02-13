@@ -8,16 +8,10 @@
     "esModuleInterop": true,
     "types": ["node"],
     "resolveJsonModule": true,
-    "declaration": true,
-    "incremental": true,
-    "composite": true,
-    "sourceMap": true,
-    "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "baseUrl": ".",
-    "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": "src",
+    "outDir": "dist"
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["dist", "**/node_modules", "**/*.test.ts"]
+  "exclude": ["dist", "node_modules"]
 }
