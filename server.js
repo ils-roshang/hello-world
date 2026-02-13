@@ -19,7 +19,6 @@ app.get('/', (req, res) => {
 app.post('/mcp', (req, res) => {
   console.log('Received MCP request:', JSON.stringify(req.body));
   
-  // Spawn the MCP server process
   const mcpProcess = spawn('npx', ['-y', '@google-cloud/storage-mcp'], {
     env: {
       ...process.env,
@@ -29,11 +28,12 @@ app.post('/mcp', (req, res) => {
 
   let stdout = '';
   let stderr = '';
-  let responseStarted = false;
+  let responseSent = false;
 
-  // Set a timeout
+  // Timeout handler
   const timeout = setTimeout(() => {
-    if (!responseStarted) {
+    if (!responseSent) {
+      responseSent = true;
       mcpProcess.kill();
       res.status(504).json({ 
         error: 'Request timeout',
@@ -41,76 +41,76 @@ app.post('/mcp', (req, res) => {
         stdout: stdout
       });
     }
-  }, 30000); // 30 second timeout
+  }, 30000);
 
-  // Write the request to the MCP process stdin
+  // Write request to stdin
   mcpProcess.stdin.write(JSON.stringify(req.body) + '\n');
   mcpProcess.stdin.end();
 
-  // Collect stdout
+  // Collect stdout - look for complete JSON-RPC response
   mcpProcess.stdout.on('data', (data) => {
-    stdout += data.toString();
-    console.log('MCP stdout:', data.toString());
+    const chunk = data.toString();
+    stdout += chunk;
+    console.log('MCP stdout:', chunk);
+
+    // Try to parse each line as JSON
+    const lines = stdout.split('\n');
+    for (const line of lines) {
+      if (line.trim() && !responseSent) {
+        try {
+          const parsed = JSON.parse(line);
+          if (parsed.jsonrpc === '2.0' && parsed.id === req.body.id) {
+            clearTimeout(timeout);
+            responseSent = true;
+            mcpProcess.kill();
+            return res.json(parsed);
+          }
+        } catch (e) {
+          // Not complete JSON yet, continue collecting
+        }
+      }
+    }
   });
 
-  // Collect stderr
   mcpProcess.stderr.on('data', (data) => {
     stderr += data.toString();
     console.error('MCP stderr:', data.toString());
   });
 
-  // Handle process completion
   mcpProcess.on('close', (code) => {
-    clearTimeout(timeout);
-    
-    if (responseStarted) return;
-    responseStarted = true;
-
-    console.log(`MCP process exited with code ${code}`);
-    
-    if (code !== 0) {
-      return res.status(500).json({
-        error: 'MCP process failed',
-        code: code,
-        stderr: stderr,
-        stdout: stdout
-      });
-    }
-
-    // Try to parse the response
-    try {
-      // Split by newlines and find JSON responses
-      const lines = stdout.split('\n').filter(line => line.trim());
+    if (!responseSent) {
+      clearTimeout(timeout);
+      responseSent = true;
+      console.log(`MCP process exited with code ${code}`);
       
+      // Try one last time to parse the response
+      const lines = stdout.split('\n');
       for (const line of lines) {
-        try {
-          const parsed = JSON.parse(line);
-          if (parsed.jsonrpc === '2.0') {
-            return res.json(parsed);
+        if (line.trim()) {
+          try {
+            const parsed = JSON.parse(line);
+            if (parsed.jsonrpc === '2.0') {
+              return res.json(parsed);
+            }
+          } catch (e) {
+            // Continue
           }
-        } catch (e) {
-          // Not JSON, continue
         }
       }
       
-      // If no valid JSON-RPC response found, return raw output
-      res.json({ output: stdout, stderr: stderr });
-    } catch (error) {
       res.status(500).json({
-        error: 'Failed to parse response',
-        message: error.message,
+        error: 'No valid response',
+        code: code,
         stdout: stdout,
         stderr: stderr
       });
     }
   });
 
-  // Handle errors
   mcpProcess.on('error', (error) => {
-    clearTimeout(timeout);
-    
-    if (!responseStarted) {
-      responseStarted = true;
+    if (!responseSent) {
+      clearTimeout(timeout);
+      responseSent = true;
       res.status(500).json({
         error: 'Failed to spawn MCP process',
         message: error.message
