@@ -17,7 +17,8 @@ COPY packages/storage-mcp/tsconfig.json ./packages/storage-mcp/
 COPY packages/storage-mcp/build.js ./packages/storage-mcp/
 
 # Install dependencies
-RUN npm install
+# Using --ignore-scripts to prevent 'prepare' scripts from running before source is copied
+RUN npm install --ignore-scripts
 
 # Copy source code
 COPY packages/storage-mcp/src ./packages/storage-mcp/src
