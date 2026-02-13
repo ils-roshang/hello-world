@@ -5,7 +5,7 @@ WORKDIR /app
 
 # Copy entire repo (needed for monorepo + tsconfig extends)
 COPY . .
-
+ENV NODE_OPTIONS="--max-old-space-size=4096"
 # Install dependencies (workspace aware)
 RUN npm install
 
