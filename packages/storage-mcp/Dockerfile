@@ -7,7 +7,7 @@ WORKDIR /app
 COPY . .
 
 # Install dependencies (workspace aware)
-RUN npm ci
+RUN npm install
 
 # Build only storage-mcp workspace
 RUN npm run build --workspace=@google-cloud/storage-mcp
