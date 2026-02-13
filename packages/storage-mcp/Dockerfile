@@ -1,42 +1,32 @@
-# Build stage
+# -------- Build Stage --------
 FROM node:20-slim AS build
 
 WORKDIR /app
 
-# Copy root workspace files if needed, but since we are specifically in a package, 
-# we try to be self-contained or copy what's necessary.
-# For simplicity, we assume we are building from the root of the repo OR 
-# we copy the specific package if it's independent enough.
-# In gcloud-mcp repo, it's a turborepo/monorepo.
+# Copy only workspace package
+COPY packages/storage-mcp ./packages/storage-mcp
 
-COPY package.json ./
-COPY turbo.json ./
-COPY tsconfig.json ./
-COPY packages/storage-mcp/package.json ./packages/storage-mcp/
-COPY packages/storage-mcp/tsconfig.json ./packages/storage-mcp/
-COPY packages/storage-mcp/build.js ./packages/storage-mcp/
-
-# Copy source code
-COPY packages/storage-mcp/src ./packages/storage-mcp/src
+WORKDIR /app/packages/storage-mcp
 
 # Install dependencies
 RUN npm install
 
-# Build the package (this might be a duplicate but ensures it runs if npm install didn't)
-RUN npm run build --workspace=@google-cloud/storage-mcp
+# Compile TypeScript (NO bundling)
+RUN npm run build
 
-# Production stage
+# -------- Production Stage --------
 FROM node:20-slim
 
 WORKDIR /app
 
+# Copy compiled output
 COPY --from=build /app/packages/storage-mcp/package.json ./
 COPY --from=build /app/packages/storage-mcp/dist ./dist
-COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/packages/storage-mcp/node_modules ./node_modules
 
-# Cloud Run defaults to port 8080
+# Cloud Run port
 ENV PORT=8080
-
 EXPOSE 8080
 
-CMD ["node", "dist/bundle.js"]
+# Start compiled JS (NOT bundle.js)
+CMD ["node", "dist/src/index.js"]
