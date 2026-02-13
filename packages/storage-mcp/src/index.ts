@@ -81,18 +81,18 @@ const main = async () => {
     registerTool(server);
   }
 
-  const PORT = process.env.PORT || (process.env.K_SERVICE ? '8080' : null);
+  const PORT = process.env['PORT'] || (process.env['K_SERVICE'] ? '8080' : null);
 
   if (PORT) {
     const app = express();
     let sseTransport: SSEServerTransport | null = null;
 
-    app.get('/sse', async (req, res) => {
+    app.get('/sse', async (_req: express.Request, res: express.Response) => {
       sseTransport = new SSEServerTransport('/messages', res);
       await server.connect(sseTransport);
     });
 
-    app.post('/messages', async (req, res) => {
+    app.post('/messages', async (req: express.Request, res: express.Response) => {
       if (sseTransport) {
         await sseTransport.handlePostMessage(req, res);
       } else {
@@ -101,7 +101,7 @@ const main = async () => {
     });
 
     // Health check
-    app.get('/', (req, res) => {
+    app.get('/', (_req: express.Request, res: express.Response) => {
       res.json({
         name: 'storage-mcp-server',
         version: pkg.version,
