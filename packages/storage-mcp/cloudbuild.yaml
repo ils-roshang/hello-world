@@ -4,7 +4,7 @@ steps:
     args:
       - build
       - '-t'
-      - us-central1-docker.pkg.dev/sureel-test/hello-repo/mcp-storage-server-new
+      - us-central1-docker.pkg.dev/sureel-test/hello-repo/mcp-storage-server-test
       - '.'
       - '-f'
       - 'packages/storage-mcp/Dockerfile'
@@ -13,7 +13,7 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - push
-      - us-central1-docker.pkg.dev/sureel-test/hello-repo/mcp-storage-server-new
+      - us-central1-docker.pkg.dev/sureel-test/hello-repo/mcp-storage-server-test
 
   # Deploy to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -22,7 +22,7 @@ steps:
       - run
       - deploy
       - mcp-storage-server
-      - '--image=us-central1-docker.pkg.dev/sureel-test/hello-repo/mcp-storage-server-new'
+      - '--image=us-central1-docker.pkg.dev/sureel-test/hello-repo/mcp-storage-server-test'
       - '--region=us-central1'
       - '--platform=managed'
       - '--allow-unauthenticated'
