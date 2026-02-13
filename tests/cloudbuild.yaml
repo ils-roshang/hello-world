@@ -1,0 +1,62 @@
+substitutions:
+  _GEMINI_CLI_RELEASE_VERSION: 'latest'
+steps:
+  - name: 'node:20'
+    env:
+      - 'GOOGLE_GENAI_USE_VERTEXAI=true'
+      - 'GOOGLE_CLOUD_PROJECT=gcloud-mcp-testing'
+      - 'GOOGLE_CLOUD_LOCATION=us-central1'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        set -e -o pipefail
+
+        echo "--- Installing gcloud CLI ---"
+        export DEBIAN_FRONTEND=noninteractive
+        apt-get update && apt-get install -y apt-transport-https ca-certificates gnupg curl wget
+        echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | tee /etc/apt/sources.list.d/google-cloud-sdk.list
+        curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
+        apt-get update && apt-get install -y --no-install-recommends google-cloud-cli
+
+        echo "--- Running gcloud info ---"
+        gcloud info
+
+        echo "--- Installing Node dependencies and building ---"
+        npm ci
+        cd packages/gcloud-mcp
+        npm link
+        cd ../..
+        cd packages/observability-mcp
+        npm link
+        cd ../..
+        cd packages/storage-mcp
+        npm link
+        cd ../..
+        npm install -g @google/gemini-cli@$_GEMINI_CLI_RELEASE_VERSION
+        echo "Gemini CLI version:"
+        gemini --version
+
+        echo "--- Initializing servers with Gemini CLI"
+        npx gcloud-mcp init --agent=gemini-cli --local
+        npx observability-mcp init --agent=gemini-cli --local
+        npx storage-mcp init --agent=gemini-cli --local
+
+        echo "--- Installing Go ---"
+        GO_VERSION="1.23.0"
+        GO_DIST="go$$GO_VERSION.linux-amd64.tar.gz"
+        wget "https://golang.org/dl/$$GO_DIST"
+        tar -C /usr/local -xzf "$$GO_DIST"
+        rm "$$GO_DIST"
+        export PATH=$$PATH:/usr/local/go/bin
+        echo "Go version:"
+        go version
+
+
+        echo "--- Building and running Go integration tests ---"
+        cd tests/integration
+        go build -o /workspace/integration-test .
+        /workspace/integration-test
+
+options:
+  logging: CLOUD_LOGGING_ONLY

@@ -1,0 +1,43 @@
+---
+name: '🐛 Bug Report'
+description: Report a bug
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping us improve! 🙏 Please answer these questions and provide as much information as possible about your problem.
+  - type: dropdown
+    id: server
+    attributes:
+      label: Server
+      multiple: true
+      options:
+        - gcloud-mcp
+        - observability-mcp
+        - other
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What did you do?
+      description: |
+        Describe the bug. If possible, provide a recipe for reproducing the error. 
+        Use `npx @google-cloud/[PACKAGE_NAME] --version` to find the version you're using. (ex: `npx @google-cloud/gcloud-mcp --version`)
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What did you see happen?
+      description: |
+        Please include full errors, uncaught exceptions, stack traces, and relevant logs.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to see?
+    validations:
+      required: true

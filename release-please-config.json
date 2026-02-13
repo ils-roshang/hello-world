@@ -1,0 +1,21 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "bootstrap-sha": "b57cea402695c844ca3da20633b1f30f9a372048",
+  "packages": {
+    "packages/gcloud-mcp": {},
+    "packages/observability-mcp": {},
+    "packages/storage-mcp": {}
+  },
+  "plugins": [
+    {
+      "type": "node-workspace",
+      "updatePeerDependencies": true
+    },
+    {
+      "type": "sentence-case"
+    }
+  ],
+  "separate-pull-requests": true,
+  "bump-minor-pre-major": true,
+  "release-type": "node"
+}

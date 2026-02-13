@@ -1,0 +1,13 @@
+---
+name: '📕 Documentation Issue'
+description: Changes to the documentation
+title: 'doc: short issue description'
+
+body:
+  - type: textarea
+    id: details
+    attributes:
+      label: What do you think should be changed?
+      description: Provide details on what you saw and how you think it should be updated.
+    validations:
+      required: true

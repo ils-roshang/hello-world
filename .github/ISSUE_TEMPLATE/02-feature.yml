@@ -1,0 +1,27 @@
+---
+name: 🆕 Feature Request
+description: Propose a new idea or enhancement
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: What is the feature or problem you’d like to solve?
+      description: Provide a clear and concise description of the feature you are proposing.
+    validations:
+      required: true
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Why do you need this feature?
+      description: Describe the problem that this feature would solve.
+    validations:
+      required: true
+  - type: textarea
+    id: prompts
+    attributes:
+      label: Example prompts, workflows, or additional information
+      description: |
+        If it's a new tool or improvement, share 3–5 example prompts or workflows it would enable. 
+        You can also include any other relevant context or background information here.
+    validations:
+      required: false
