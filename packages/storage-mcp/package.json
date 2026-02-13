@@ -1,7 +1,7 @@
 {
   "name": "@google-cloud/storage-mcp",
   "version": "0.3.3",
-  "main": "dist/src/index.js",
+  "main": "dist/index.js",
   "bin": {
     "storage-mcp": "./dist/src/index.js"
   },
