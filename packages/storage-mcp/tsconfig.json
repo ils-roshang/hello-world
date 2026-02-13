@@ -6,7 +6,7 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "esModuleInterop": true,
-    "types": ["node", "vitest/globals"],
+    "types": ["node"],
     "resolveJsonModule": true,
     "declaration": true,
     "incremental": true,
