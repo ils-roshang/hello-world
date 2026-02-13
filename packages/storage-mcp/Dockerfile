@@ -1,30 +1,44 @@
-# ---------- Build Stage ----------
+# ===============================
+# Stage 1 — Build
+# ===============================
 FROM node:20-slim AS build
 
 WORKDIR /app
 
-# Copy entire repo (needed for monorepo + tsconfig extends)
+# Increase memory for TypeScript (safe)
+ENV NODE_OPTIONS=--max-old-space-size=4096
+
+# Copy entire monorepo (tsconfig extends require this)
 COPY . .
-ENV NODE_OPTIONS="--max-old-space-size=4096"
-# Install dependencies (workspace aware)
+
+# Install dependencies (root workspace install)
 RUN npm install
 
-# Build only storage-mcp workspace
-RUN npm run build --workspace=@google-cloud/storage-mcp
+# Build ONLY storage-mcp (bypass turbo)
+WORKDIR /app/packages/storage-mcp
+RUN npx tsc
 
 
-# ---------- Production Stage ----------
+# ===============================
+# Stage 2 — Production
+# ===============================
 FROM node:20-slim
 
 WORKDIR /app
 
-# Copy only required files from build stage
-COPY --from=build /app/packages/storage-mcp/package.json ./
+ENV NODE_ENV=production
+ENV PORT=8080
+
+# Copy compiled output
 COPY --from=build /app/packages/storage-mcp/dist ./dist
+
+# Copy package.json (for metadata)
+COPY --from=build /app/packages/storage-mcp/package.json ./
+
+# Copy only production node_modules
 COPY --from=build /app/node_modules ./node_modules
 
-ENV PORT=8080
 EXPOSE 8080
 
-# IMPORTANT: Run compiled JS, not bundle.js
-CMD ["node", "dist/src/index.js"]
+# Run compiled CommonJS entry
+CMD ["node", "dist/index.js"]
