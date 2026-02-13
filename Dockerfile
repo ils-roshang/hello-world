@@ -1,19 +1,13 @@
-# Use Node.js base image
-FROM node:18
+FROM node:20-slim
 
-# Create app directory
 WORKDIR /app
 
-# Install dependencies
-COPY package*.json ./
-RUN npm install
+# Install the storage-mcp package
+RUN npm install -g @google-cloud/storage-mcp
 
-# Copy app source
-COPY . .
+# Create a simple HTTP wrapper
+COPY server.js .
 
-# Expose port
 EXPOSE 8080
 
-# Start app
-CMD ["npm", "start"]
-
+CMD ["node", "server.js"]
