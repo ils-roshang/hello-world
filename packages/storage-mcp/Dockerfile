@@ -1,32 +1,30 @@
-# -------- Build Stage --------
+# ---------- Build Stage ----------
 FROM node:20-slim AS build
 
 WORKDIR /app
 
-# Copy only workspace package
-COPY packages/storage-mcp ./packages/storage-mcp
+# Copy entire repo (needed for monorepo + tsconfig extends)
+COPY . .
 
-WORKDIR /app/packages/storage-mcp
-
-# Install dependencies
+# Install dependencies (workspace aware)
 RUN npm install
 
-# Compile TypeScript (NO bundling)
-RUN npm run build
+# Build only storage-mcp workspace
+RUN npm run build --workspace=@google-cloud/storage-mcp
 
-# -------- Production Stage --------
+
+# ---------- Production Stage ----------
 FROM node:20-slim
 
 WORKDIR /app
 
-# Copy compiled output
+# Copy only required files from build stage
 COPY --from=build /app/packages/storage-mcp/package.json ./
 COPY --from=build /app/packages/storage-mcp/dist ./dist
-COPY --from=build /app/packages/storage-mcp/node_modules ./node_modules
+COPY --from=build /app/node_modules ./node_modules
 
-# Cloud Run port
 ENV PORT=8080
 EXPOSE 8080
 
-# Start compiled JS (NOT bundle.js)
+# IMPORTANT: Run compiled JS, not bundle.js
 CMD ["node", "dist/src/index.js"]
