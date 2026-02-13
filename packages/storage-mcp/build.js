@@ -33,5 +33,10 @@ build({
     '@google-cloud/bigquery',
     '@google-cloud/service-usage',
     '@google-cloud/storageinsights',
+    '@modelcontextprotocol/sdk',
+    'express',
+    'yargs',
+    'zod',
+    'mime-types',
   ],
 }).catch(() => process.exit(1));
