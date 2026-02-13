@@ -3,8 +3,8 @@
   "compilerOptions": {
     "lib": ["es2023"],
     "target": "es2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
     "esModuleInterop": true,
     "types": ["node"],
     "resolveJsonModule": true,
@@ -16,8 +16,8 @@
     "skipLibCheck": true,
     "baseUrl": ".",
     "outDir": "dist",
-    "rootDir": "."
+    "rootDir": "src"
   },
-  "include": ["src/**/*.ts", "./package.json"],
+  "include": ["src/**/*.ts"],
   "exclude": ["dist", "**/node_modules", "**/*.test.ts"]
 }
