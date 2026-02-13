@@ -16,14 +16,13 @@ COPY packages/storage-mcp/package.json ./packages/storage-mcp/
 COPY packages/storage-mcp/tsconfig.json ./packages/storage-mcp/
 COPY packages/storage-mcp/build.js ./packages/storage-mcp/
 
-# Install dependencies
-# Using --ignore-scripts to prevent 'prepare' scripts from running before source is copied
-RUN npm install --ignore-scripts
-
 # Copy source code
 COPY packages/storage-mcp/src ./packages/storage-mcp/src
 
-# Build the package
+# Install dependencies
+RUN npm install
+
+# Build the package (this might be a duplicate but ensures it runs if npm install didn't)
 RUN npm run build --workspace=@google-cloud/storage-mcp
 
 # Production stage
