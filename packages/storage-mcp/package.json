@@ -2,24 +2,21 @@
   "name": "@google-cloud/storage-mcp",
   "version": "0.3.3",
   "type": "module",
-  "main": "dist/bundle.js",
+  "main": "dist/src/index.js",
   "bin": {
-    "storage-mcp": "./dist/bundle.js"
+    "storage-mcp": "./dist/src/index.js"
   },
   "files": [
     "dist/"
   ],
   "scripts": {
-    "build": "tsc --noemit && node build.js",
+    "build": "tsc",
+    "start": "node dist/src/index.js",
     "test": "vitest run",
     "test:integration": "vitest run --config vitest.config.integration.ts",
     "test:e2e": "vitest run --config vitest.config.e2e.ts",
-    "start": "node dist/bundle.js",
     "lint": "prettier --check . && eslint . --max-warnings 0",
-    "fix": "prettier --write . && eslint . --fix",
-    "prepare": "npm run build",
-    "pretest": "npm run build",
-    "posttest": "npm run lint"
+    "fix": "prettier --write . && eslint . --fix"
   },
   "repository": {
     "type": "git",
@@ -54,7 +51,6 @@
     "eslint-plugin-license-header": "^0.8.0",
     "eslint-plugin-prettier": "^5.5.4",
     "prettier": "^3.6.2",
-    "turbo": "latest",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.39.0",
     "vitest": "^3.2.4"
