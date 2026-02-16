@@ -1,28 +1,11 @@
 #!/usr/bin/env node
 
-/**
- * Copyright 2025 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *	http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { registerTools } from './tools/registration.js';
 import pkg from '../package.json' with { type: 'json' };
-import yargs, { ArgumentsCamelCase, CommandModule } from 'yargs';
-import { hideBin } from 'yargs/helpers';
-import { init } from './commands/init.js';
+import http from 'node:http';
 
 const getServer = (): McpServer => {
   const server = new McpServer({
@@ -30,61 +13,65 @@ const getServer = (): McpServer => {
     version: pkg.version,
     title: 'Cloud Observability MCP',
   });
+
   registerTools(server);
   return server;
 };
 
-const exitProcessAfter = <T, U>(cmd: CommandModule<T, U>): CommandModule<T, U> => ({
-  ...cmd,
-  handler: async (argv: ArgumentsCamelCase<U>) => {
-    await cmd.handler(argv);
-    process.exit(0);
-  },
-});
+const startHttpTransport = async (server: McpServer) => {
+  const port = Number(process.env.PORT || 8080);
 
-const main = async () => {
-  await yargs(hideBin(process.argv))
-    .command('$0', 'Run the Cloud Observability MCP server')
-    .command(exitProcessAfter(init))
-    .version(pkg.version)
-    .help()
-    .parse();
+  const transport = new StreamableHTTPServerTransport();
 
-  const server = getServer();
-  await server.connect(new StdioServerTransport());
-  // TODO(https://github.com/googleapis/gcloud-mcp/issues/80): Update to use the custom logger once it's made sharable between packages
-  // eslint-disable-next-line no-console
-  console.error('🚀 Cloud Observability MCP server started');
+  await server.connect(transport);
 
-  process.on('uncaughtException', async (err: unknown) => {
-    await server.close();
-    const error = err instanceof Error ? err : undefined;
-    // TODO(https://github.com/googleapis/gcloud-mcp/issues/80): Update to use the custom logger once it's made sharable between packages
-    // eslint-disable-next-line no-console
-    console.error('❌ Uncaught exception.', error);
-    process.exit(1);
+  const httpServer = http.createServer(transport.requestListener);
+
+  httpServer.listen(port, () => {
+    console.error(`🚀 MCP HTTP server listening on port ${port}`);
   });
-  process.on('unhandledRejection', async (reason: unknown, promise: Promise<unknown>) => {
-    await server.close();
-    const error = reason instanceof Error ? reason : undefined;
-    // TODO(https://github.com/googleapis/gcloud-mcp/issues/80): Update to use the custom logger once it's made sharable between packages
-    // eslint-disable-next-line no-console
-    console.error(`❌ Unhandled rejection: ${promise}`, error);
-    process.exit(1);
-  });
+
   process.on('SIGINT', async () => {
     await server.close();
     process.exit(0);
   });
+
   process.on('SIGTERM', async () => {
     await server.close();
     process.exit(0);
   });
 };
 
-main().catch((err: unknown) => {
-  const error = err instanceof Error ? err : undefined;
-  // eslint-disable-next-line no-console
-  console.error('❌ Unable to start Cloud Observability MCP server.', error);
+const startStdioTransport = async (server: McpServer) => {
+  await server.connect(new StdioServerTransport());
+  console.error('🚀 MCP server started (stdio mode)');
+};
+
+const main = async () => {
+  const server = getServer();
+
+  const transportMode = process.env.MCP_TRANSPORT || 'stdio';
+
+  if (transportMode === 'http') {
+    await startHttpTransport(server);
+  } else {
+    await startStdioTransport(server);
+  }
+
+  process.on('uncaughtException', async (err) => {
+    console.error('❌ Uncaught exception:', err);
+    await server.close();
+    process.exit(1);
+  });
+
+  process.on('unhandledRejection', async (reason) => {
+    console.error('❌ Unhandled rejection:', reason);
+    await server.close();
+    process.exit(1);
+  });
+};
+
+main().catch((err) => {
+  console.error('❌ Failed to start MCP server:', err);
   process.exit(1);
 });
