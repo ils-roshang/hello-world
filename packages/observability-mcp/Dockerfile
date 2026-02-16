@@ -7,6 +7,10 @@ WORKDIR /usr/src/app
 
 COPY . .
 
+# We use -w to target the specific package
+RUN npm install express cors --workspace=@google-cloud/observability-mcp
+RUN npm install --save-dev @types/express @types/cors --workspace=@google-cloud/observability-mcp
+
 # Install deps without running prepare scripts
 RUN npm install --ignore-scripts
 
