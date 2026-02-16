@@ -3,16 +3,14 @@
 ############################
 FROM node:20-slim AS builder
 
-# Set working directory
 WORKDIR /usr/src/app
 
-# Copy entire monorepo
 COPY . .
 
-# Install dependencies WITHOUT running prepare scripts
+# Install deps without running prepare scripts
 RUN npm install --ignore-scripts
 
-# Build only observability MCP package
+# Build observability MCP
 RUN npm run build -w @google-cloud/observability-mcp
 
 ############################
@@ -20,23 +18,20 @@ RUN npm run build -w @google-cloud/observability-mcp
 ############################
 FROM node:20-slim
 
-# Environment for production
 ENV NODE_ENV=production
 ENV PORT=8080
+ENV MCP_TRANSPORT=http
 
 WORKDIR /usr/src/app
 
-# Copy built workspace from builder
+# Copy built app
 COPY --from=builder /usr/src/app ./
 
-# Install only production dependencies without scripts
+# Install only prod deps
 RUN npm install --omit=dev --ignore-scripts
 
-# Move into observability package
 WORKDIR /usr/src/app/packages/observability-mcp
 
-# Expose Cloud Run port
 EXPOSE 8080
 
-# Start MCP server
 CMD ["node", "dist/bundle.js"]
