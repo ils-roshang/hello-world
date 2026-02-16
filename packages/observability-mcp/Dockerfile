@@ -1,38 +1,42 @@
-# Use the official Node.js image as the builder.
+############################
+# Stage 1 — Builder
+############################
 FROM node:20-slim AS builder
 
-# Create and change to the app directory.
+# Set working directory
 WORKDIR /usr/src/app
 
-# Copy the entire workspace to get the root package.json and packages
+# Copy entire monorepo
 COPY . .
 
-# Install dependencies for the whole workspace
-RUN npm install
+# Install dependencies WITHOUT running prepare scripts
+RUN npm install --ignore-scripts
 
-# Build the specific package
+# Build only observability MCP package
 RUN npm run build -w @google-cloud/observability-mcp
 
-# Use a smaller image for the runtime.
+############################
+# Stage 2 — Runtime
+############################
 FROM node:20-slim
 
-# Create and change to the app directory.
+# Environment for production
+ENV NODE_ENV=production
+ENV PORT=8080
+
 WORKDIR /usr/src/app
 
-# Copy root dependency manifests
-COPY package*.json ./
+# Copy built workspace from builder
+COPY --from=builder /usr/src/app ./
 
-# Copy the specific package's manifest
-COPY packages/observability-mcp/package*.json ./packages/observability-mcp/
+# Install only production dependencies without scripts
+RUN npm install --omit=dev --ignore-scripts
 
-# Install ONLY production dependencies for the workspace
-RUN npm install --omit=dev --workspace=@google-cloud/observability-mcp
-
-# Copy the built bundle from the builder stage
-COPY --from=builder /usr/src/app/packages/observability-mcp/dist ./packages/observability-mcp/dist
-
-# Set the working directory to the package
+# Move into observability package
 WORKDIR /usr/src/app/packages/observability-mcp
 
-# Run the web service on container startup.
-CMD [ "npm", "start" ]
+# Expose Cloud Run port
+EXPOSE 8080
+
+# Start MCP server
+CMD ["node", "dist/bundle.js"]
