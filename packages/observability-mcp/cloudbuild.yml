@@ -35,4 +35,4 @@ steps:
       - 'ENABLE_DESTRUCTIVE_TOOLS=false'
 
 images:
-  - us-central1-docker.pkg.dev/sureel-test/hello-repo/mcp-observability-server
+  - us-central1-docker.pkg.dev/sureel-test/hello-repo/mcp-observability-server-test
